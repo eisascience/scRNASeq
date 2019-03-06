@@ -50,14 +50,7 @@ GetEnsmbleVarImportance <- function(ClassiferSet, AvailableClassifiers="", Scale
 
 
 ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", testing.data, log10T=T){
-  # Classifier.rds.path  = "./data/MCR_LS_CD8T.rds"
-  # ClassifierNames=""
-  # log10T = T
-  # testing.data = Exp_248_SeurComboObj
-  
-  
-  
-  #####################
+
   if(file.exists(Classifier.rds.path)){
     MultiClassifierResults <- readRDS(Classifier.rds.path)
     Available.Classifiers  <- names(MultiClassifierResults)[grepl("classifier", names(MultiClassifierResults))]
@@ -70,18 +63,7 @@ ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", te
       ClassifierNames <- Available.Classifiers
     }
     MultiClassifier        <- MultiClassifierResults[Available.Classifiers]
-    # 
-    # 
-    # 
-    # 
-    # ############
-    # 
-    # Exp_248_SeurComboObj@data[1:10, 1:10]
-    # length(colnames(Exp_248_SeurComboObj@data)) #cells
-    # 
-    # testing.cell.IDs <- colnames(Exp_248_SeurComboObj@data)[sample(1:length(colnames(Exp_248_SeurComboObj@data)), 10000, replace = F)]
-    # heldout.cell.IDs  <- colnames(Exp_248_SeurComboObj@data)[which(!(colnames(Exp_248_SeurComboObj@data) %in% testing.cell.IDs))]
-    # 
+    
     
     if(class(testing.data)[1]=="seurat") {
       testing.data <- testing.data@data
@@ -105,16 +87,10 @@ ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", te
     print("Starting Classification")
     
     testing.data.yhat <- data.frame(lapply(Available.Classifiers, function(ClassifX){
-      #ClassifX = Available.Classifiers[5]
       print(ClassifX)
       
       tempClassifier <- MultiClassifier[[ClassifX]]
-      #tempClassifier$coefnames
-      
-      # if(ClassifX=="RRF_classifier"){
-      #   tempFeats <- tempClassifier$forest$independent.variable.names
-      #   y.hat <- predict(tempClassifier, data=tempMat[,tempFeats])
-      # }
+ 
       y.hat <- predict(tempClassifier, newdata = testing.data)
       
       
@@ -130,8 +106,7 @@ ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", te
     
     testing.data.yhat$NotProb <- testing.data.yhat$CountNot/testing.data.yhat$CountTot
     
-    #plot(density(testing.data.yhat$NotProb))
-    
+
     
     rownames(testing.data.yhat) <- rownames(testing.data)
     return(list(yhat.DF = testing.data.yhat, 
@@ -172,19 +147,7 @@ MultiClassifier_Cells <- function (object_train,
                                    crossValReps = 3, 
                                    NcrossVal = 10) 
 {
-  # #install.packages("fastAdaboost")
-  # object_train   = pbmc_train
-  # object_test    = pbmc_test
-  # training.genes = SigGeneList$CD8Tcells$Interoperable.Genes
-  # Y_Train_True   = CD8TbinaryClass_train
-  # Y_Test_True    = CD8TbinaryClass_test
-  # log10p1=T
-  # do_Adaboost = T
-  # do_Caret_LinSVM = T
-  # do_ranger_RF = T
-  # do_Caret_NaiveBayes = T
-  # do_Caret_NNet = T
-  # do_Caret_radialSVM = T
+
   
   if(do_Adaboost) library(fastAdaboost)
   if(do_Caret_LinSVM) library(caret)
@@ -199,10 +162,7 @@ MultiClassifier_Cells <- function (object_train,
   training.classes <- as.vector(x = Y_Train_True)
   training.genes   <- SetIfNull(x = training.genes, default = rownames(x = object_train@data))
   training.data    <- as.data.frame(x = as.matrix(x = t(x = object_train@data[training.genes, ])))
-  #training.data   <- as.data.frame(as.matrix(t(object_train@data))) #[,training.genes]
-  
-  #training.genes[which(!(training.genes %in% colnames(training.data)))]
-  #colnames(training.data)[grep("HLA",  colnames(training.data))]
+
   
   testing.classes <- as.vector(x = Y_Test_True)
   testing.genes   <- SetIfNull(x = training.genes, default = rownames(x = object_test@data))
@@ -218,10 +178,7 @@ MultiClassifier_Cells <- function (object_train,
   
   training.data$Class <- factor(x = training.classes)
   
-  # class(training.data)
-  
-  # corMat <- cor(data.matrix(training.data))
-  # highCors <- findCorrelation(corMat, cutoff=0.8)
+
   
   colnames(training.data) <- gsub("-", "", colnames(training.data))
   colnames(testing.data) <- gsub("-", "", colnames(testing.data))
@@ -349,14 +306,6 @@ MultiClassifier_Cells <- function (object_train,
     print("running tree based class with rpart")
     TrainingParameters <- trainControl(method = "repeatedcv", number = NcrossVal, repeats=crossValReps)
     
-    # tempClassHolder <- training.data$Class
-    # tempColnameHolder <- colnames(training.data)
-    
-    # training.data <- training.data[,which(colnames(training.data) != "Class")]
-    # training.data <- data.frame(apply(training.data, 2, as.numeric))
-    # training.data$Class <- tempClassHolder
-    # colnames(training.data) <- tempColnameHolder
-    
     
     
     rpart_classifier <- train(Class ~ ., data = training.data,
@@ -400,14 +349,7 @@ MultiClassifier_Cells <- function (object_train,
     print("running tree based class with rpart w/ gini index")
     TrainingParameters <- trainControl(method = "repeatedcv", number = NcrossVal, repeats=crossValReps)
     
-    # tempClassHolder <- training.data$Class
-    # tempColnameHolder <- colnames(training.data)
-    
-    # training.data <- training.data[,which(colnames(training.data) != "Class")]
-    # training.data <- data.frame(apply(training.data, 2, as.numeric))
-    # training.data$Class <- tempClassHolder
-    # colnames(training.data) <- tempColnameHolder
-    
+      
     
     
     rpartGini_classifier <- train(Class ~ ., data = training.data,
@@ -559,17 +501,7 @@ MultiClassifier_Cells <- function (object_train,
     
   }
   
-  # SVM_poly_classifier <- train(Class ~ ., data = trainDF,
-  #                  method = "svmPoly",
-  #                  trControl= TrainingParameters,
-  #                  tuneGrid = data.frame(degree = 1,
-  #                                        scale = 1,
-  #                                        C = 1),
-  #                  preProcess = c("scale","center"),
-  #                  na.action = na.omit)
-  
-  
-  
+
   
   
   
@@ -599,16 +531,8 @@ MultiClassifier_Cells <- function (object_train,
     results_ls$NaiveBayes_train_ConfTab   <- table(pred=results_ls$NaiveBayes_train_yhat, truth=training.data$Class)
     
   }
-  
-  
-  # train model with neural networks
-  # NNModel <- train(Class ~ ., data = trainDF,
-  #                  method = "nnet",
-  #                  trControl= TrainingParameters,
-  #                  preProcess=c("scale","center"),
-  #                  na.action = na.omit)
-  
-  if(do_Caret_NNet) {
+ 
+   if(do_Caret_NNet) {
     print("running NNet")
     
     # training model with SVM

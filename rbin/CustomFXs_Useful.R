@@ -3,13 +3,7 @@
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
 
 MDSmyDF <- function(dfx, labelsDF, factorV, title = "MDS Plot", col_vector){
-  
-  # mds <- (as.data.frame(dfx)  %>%
-  #        cbind(cmdscale(as.matrix(dist(dfx) ))) )  
-  
-  # dfx = as.data.frame(t(assay(dds)+1))
-  # labelsDF = dge$samples[,c("Group", "GroupDate", "Day")]
-  #factorV = labelsDF[, colorbyN]
+
   
   if(length(factorV) == nrow(dfx)){
     mds <- cmdscale(as.matrix(dist(dfx)))
@@ -39,9 +33,6 @@ MDSmyDF <- function(dfx, labelsDF, factorV, title = "MDS Plot", col_vector){
 }
 
 PCAmyDF <- function (dfx, labels, factorV, title = "PCA Plot", scale, center, col_vector, namePointBL = F) {
-  # dfx = log.cpm.one; scale = F; center = F; namePointBL = F
-  # factor = dge$samples$GroupDate
-  # title = "PCA Plot"
   if(class(labels) == "function") {
     print("no labels, using factor as names")
     labels = as.character(factorV)

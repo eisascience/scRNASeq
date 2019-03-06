@@ -212,7 +212,6 @@ plotMultiGeneExprUMAP <- function(datat, DGEmat, geneName, logExprBL = T, Thresh
 FindMarkers_CellType <- function(Ser_object, celltype, celltype2 = NULL, assay.type = "RNA", TriTestMode=T){
   #Updated Feb/25/2019 celltype2
   
-  # Ser_object = pbmc ; celltype = "NK cells" ; assay.type = "RNA"
   cells.1 <- WhichCells(object = Ser_object, ident = celltype)
   if(is.null(celltype2)){
     cells.2 <- WhichCells(object = Ser_object, ident.remove = celltype)
