@@ -92,3 +92,17 @@ transposedt <- function(dt, varlabel="myVar") {
   setcolorder(dtt, c(eval(varlabel), names(dtt)[1:(ncol(dtt) - 1)]))
   return(dtt)
 }
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+
+
+
+
+LogAdd <- function(x) {
+  mpi <- max(x)
+  return(mpi + log(x = sum(exp(x = x - mpi))))
+}
