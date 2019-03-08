@@ -110,7 +110,7 @@ MakeSerObjs_10XFolders <- function(counts.path = NULL,
 
 
 
-PreProcess_SerObjFolders <- function(SerObj.path = NULL,
+PreProcess_SerObjs <- function(SerObj.path = NULL,
                                    ProjName="10X",
                                    save.path = NULL, save.fig.path = NULL, 
                                    returnList=F, 
@@ -121,7 +121,9 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
                                    RhesusConvDavid.path = "./data/Rhesus/David6.8_ConvertedRhesus_ENSMMUG.txt",
                                    fvg.x.low.cutoff = 0.01, fvg.x.high.cutoff = 4.5, fvg.y.cutoff = 1.5,
                                    KeepGene.LS =NULL, 
-                                   nDimPCA=15){
+                                   nDimPCA=15, RemoveCellCycle=F, path2CCfiles="./data/CellCycle"){
+  
+  
   
   require(Seurat)
   if(returnList) TempLS <- list()
@@ -141,12 +143,16 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
     all_RDS  <- list.files(SerObj.path, full.names = T, pattern = ".rds")
     SeurObj_RDS <-  all_RDS[grep("SeuratObj.rds", all_RDS)]
     
+    print("Found files... examples:")
+    print(head(SeurObj_RDS))
     
-    for(xN in 1:length(SerObj.files)){
+    for(xN in 1:length(SeurObj_RDS)){
       # xN=1
       if(returnList) TempLS$SeuratObjs <- list()
+      print("Reading in...")
+      print(SeurObj_RDS[xN])
       
-      SeuratObjs <- readRDS(SerObj.files[xN])
+      SeuratObjs <- readRDS(SeurObj_RDS[xN])
       
       mito.genes <- grep(pattern = "^MT-", x = rownames(x = SeuratObjs@raw.data), value = TRUE)
       length(mito.genes)
@@ -191,6 +197,7 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       
       if(save.fig)  
       if(RhesusConvDavid){
+        print("Reading in David Data...")
         
         David6.8ConvTable <- data.frame(read.csv(RhesusConvDavid.path, sep = "\t", header = T))
         rownames(David6.8ConvTable) <- David6.8ConvTable$From
@@ -220,6 +227,7 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       }
       
       
+      print("Filtering Cells...")
       
       SeuratObjs <- FilterCells(object = SeuratObjs,
                                              subset.names = c("nUMI", "nGene", "percent.mito"),
@@ -233,13 +241,14 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       #CleaningLS$Figs$Combo$ViolinPlotTrio_postFilt <- recordPlot()
       if(save.fig) dev.off()
       
+      print("Normalizing ...")
       
       SeuratObjs <- NormalizeData(object = SeuratObjs, 
                                                normalization.method = "LogNormalize", 
                                                scale.factor = 10000)
       
       
-      
+      print("Finding Variable Genes ...")
       SeuratObjs <- FindVariableGenes(object = SeuratObjs,
                                                    mean.function = ExpMean,
                                                    dispersion.function = LogVMR,
@@ -248,23 +257,84 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
                                                    y.cutoff = fvg.y.cutoff, #Y-axis it is the log(Variance/mean)
                                                    num.bin = 40) #y.cutoff = 1 sd away from averge within a bin
       
+      
+      print("Scaling, centering, and regressing out nUMI and p.mito ...")
       SeuratObjs <- ScaleData(object = SeuratObjs, vars.to.regress = c("nUMI", "percent.mito"))
 
       
       if(!is.null(KeepGene.LS)){
+        print("updated Var genes with additional set")
         length(SeuratObjs@var.genes)      
         SeuratObjs@var.genes <- unique(c(SeuratObjs@var.genes, as.character(unlist(KeepGene.LS))))
         length(SeuratObjs@var.genes)
       }
       
-      
 
-      
+      print("Running PCA with Var genes ...")
       SeuratObjs <- RunPCA(object = SeuratObjs,
                                         pc.genes = SeuratObjs@var.genes,
                                         do.print = F)
       
       SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
+      
+      
+      if(RemoveCellCycle){
+        print("performing cell cycle cleaning ...")
+        
+        cc.genes <- readLines(con = paste(path2CCfiles, "/regev_lab_cell_cycle_genes.txt", sep=""))
+        g2m.genes <- readLines(con =  paste(path2CCfiles, "/G2M.txt", sep=""))
+        
+        # We can segregate this list into markers of G2/M phase and markers of S
+        # phase
+        s.genes <- cc.genes[1:43]
+        g2m.genes <- unique(c(g2m.genes, cc.genes[44:97]))
+        
+        s.genes <- s.genes[which(s.genes %in% rownames(SeuratObjs@raw.data))]
+        g2m.genes <- g2m.genes[which(g2m.genes %in% rownames(SeuratObjs@raw.data))]
+        
+        
+        
+        #OrigPCA <- SeuratObjs@dr$pca
+        print("running PCA with cell cycle genes")
+        SeuratObjs <- RunPCA(object = SeuratObjs, pc.genes = c(s.genes, g2m.genes), do.print = FALSE)
+        SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
+        
+        SeuratObjs <- CellCycleScoring(object = SeuratObjs, 
+                                       s.genes = s.genes, 
+                                       g2m.genes = g2m.genes, 
+                                       set.ident = TRUE)
+        
+        SeuratObjsCCPCA <- as.data.frame(SeuratObjs@dr$pca@cell.embeddings)
+        colnames(SeuratObjsCCPCA) <- paste(colnames(SeuratObjsCCPCA), "CellCycle", sep="_")
+        #add the PCA DF to meta.data of SeuratObjs
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_CellCycle.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
+        if(save.fig) dev.off()
+        
+        print("regressing out S and G2M score ...")
+        SeuratObjs <- ScaleData(object = SeuratObjs, 
+                                vars.to.regress = c("S.Score", "G2M.Score"), 
+                                display.progress = T)
+        
+        
+        
+        print("Running PCA with Var genes ...")
+        SeuratObjs <- RunPCA(object = SeuratObjs,
+                             pc.genes = SeuratObjs@var.genes,
+                             do.print = F)
+        
+        SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
+        
+        SeuratObjs@meta.data <- as.data.frame(cbind(SeuratObjs@meta.data, SeuratObjsCCPCA[rownames(SeuratObjs@meta.data),]))
+        
+        
+        
+      }
+      
+ 
+      
+      
       
       
       if(save.fig) png(filename =  paste(save.fig.path, "/PCElbowPlot.png", sep=""), width = 10, height = 10, units = "in", res=200)
@@ -273,14 +343,14 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       
       if(save.fig) png(filename =  paste(save.fig.path, "/PCAHeatmap.png", sep=""), width = 10, height = 10, units = "in", res=200)
       PCHeatmap(object = SeuratObjs,
-                pc.use = 1:5,
+                pc.use = 1:nDimPCA,
                 cells.use = 200,
                 do.balanced = TRUE,
                 label.columns = FALSE,
                 use.full = FALSE)
       if(save.fig) dev.off()
       
-      
+      print("Clustering in PCA Space  ...")
       SeuratObjs <- FindClusters(object = SeuratObjs, 
                                reduction.type = "pca", 
                                dims.use = 1:nDimPCA, 
@@ -296,7 +366,7 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       if(save.fig) dev.off()
       
       
-      
+      print("Running TSNE on PCA ...")
       SeuratObjs <- RunTSNE(object = SeuratObjs, 
                                          reduction.type = "pca", 
                                          dims.use = 1:nDimPCA)
@@ -305,6 +375,8 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       TSNEPlot(object = SeuratObjs, do.label = TRUE)
       if(save.fig) dev.off()
       
+      
+      print("Running UMAP on PCA...")
       SeuratObjs <- RunUMAP(SeuratObjs, 
                                          cells.use = NULL, 
                                          dims.use = 1:nDimPCA, 
@@ -338,7 +410,7 @@ PreProcess_SerObjFolders <- function(SerObj.path = NULL,
       if(save.fig) dev.off()
       
       
-      print("saving...")
+      print("saving ...")
       saveRDS(SeuratObjs, 
               paste(save.path, "/SeuratObj_", ProjName, "_", xN , ".rds", sep=""))
       
