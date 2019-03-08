@@ -146,177 +146,132 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
     print("Found files... examples:")
     print(head(SeurObj_RDS))
     
+    
     for(xN in 1:length(SeurObj_RDS)){
-      # xN=1
-      if(returnList) TempLS$SeuratObjs <- list()
-      print("Reading in...")
-      print(SeurObj_RDS[xN])
       
-      SeuratObjs <- readRDS(SeurObj_RDS[xN])
-      
-      mito.genes <- grep(pattern = "^MT-", x = rownames(x = SeuratObjs@raw.data), value = TRUE)
-      length(mito.genes)
-      
-      percent.mito <- Matrix::colSums(SeuratObjs@raw.data[mito.genes, ]) / Matrix::colSums(SeuratObjs@raw.data)
-      
-      SeuratObjs <- AddMetaData(object = SeuratObjs,
-                                             metadata = percent.mito,
-                                             col.name = "percent.mito")
-      
-      TotalPerGeneExpressed      <- rowSums(SeuratObjs@raw.data)
-      TotalPerGeneExpressed.perc <- round(TotalPerGeneExpressed/sum(TotalPerGeneExpressed)*100, 5)
-      
-      TotalPerCellExpressed <- colSums(SeuratObjs@raw.data)
-      TotalPerCellExpressed.perc <- round(TotalPerCellExpressed/sum(TotalPerCellExpressed)*100, 5)
-      
-      SeuratObjs <- AddMetaData(object = SeuratObjs,
-                              metadata = TotalPerCellExpressed,
-                              col.name = "SumTotGeneExprPerCell")
-      SeuratObjs <- AddMetaData(object = SeuratObjs,
-                              metadata = TotalPerCellExpressed.perc,
-                              col.name = "PercentSumTotGeneExprPerCell")
-      
-
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_preFilt.png", sep=""), width = 15, height = 10, units = "in", res=200)
-      VlnPlot(object = SeuratObjs,
-              features.plot = c("nGene", "nUMI", "percent.mito", "PercentSumTotGeneExprPerCell"),
-              nCol = 3, cols.use = col_vector, x.lab.rot=T, size.x.use = 11)
-      if(save.fig) dev.off()
-      
-  
-      #Genes that dont map to a specific name
-      noGeneSYM <- rownames(SeuratObjs@raw.data)[grepl(ENSMB.tag, rownames(SeuratObjs@raw.data))]
-      
-      length(noGeneSYM)
-      
-      # write.table(noGeneSYM, 
-      #             "./10X/Rhesus_ENSMMUG.csv",
-      #             sep=", ", , row.names = F, quote = F,
-      #             col.names = F)
-      
-      if(save.fig)  
-      if(RhesusConvDavid){
-        print("Reading in David Data...")
+      if(!file.exists(paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))){
         
-        David6.8ConvTable <- data.frame(read.csv(RhesusConvDavid.path, sep = "\t", header = T))
-        rownames(David6.8ConvTable) <- David6.8ConvTable$From
-        David6.8ConvTable <- David6.8ConvTable[noGeneSYM, ]
-        length(unique(noGeneSYM)); length((noGeneSYM))
-        rownames(David6.8ConvTable) <- noGeneSYM
+        # xN=1
+        if(returnList) TempLS$SeuratObjs <- list()
+        print("Reading in...")
+        print(SeurObj_RDS[xN])
         
-        David6.8ConvTable$Final <- as.character(David6.8ConvTable$To)
+        SeuratObjs <- readRDS(SeurObj_RDS[xN])
         
-        David6.8ConvTable$Final[which(is.na(David6.8ConvTable$To))] <- rownames(David6.8ConvTable)[which(is.na(David6.8ConvTable$To))]
+        mito.genes <- grep(pattern = "^MT-", x = rownames(x = SeuratObjs@raw.data), value = TRUE)
+        length(mito.genes)
         
-        rownames(SeuratObjs@raw.data)[grepl("ENSMM", rownames(SeuratObjs@raw.data))] <- David6.8ConvTable$Final
+        percent.mito <- Matrix::colSums(SeuratObjs@raw.data[mito.genes, ]) / Matrix::colSums(SeuratObjs@raw.data)
         
-        length(rownames(SeuratObjs@raw.data)); length(unique(rownames(SeuratObjs@raw.data)))
+        SeuratObjs <- AddMetaData(object = SeuratObjs,
+                                  metadata = percent.mito,
+                                  col.name = "percent.mito")
         
+        TotalPerGeneExpressed      <- rowSums(SeuratObjs@raw.data)
+        TotalPerGeneExpressed.perc <- round(TotalPerGeneExpressed/sum(TotalPerGeneExpressed)*100, 5)
         
-        duplicatedGeneNames <- names(which(table(rownames(SeuratObjs@raw.data))>1))
+        TotalPerCellExpressed <- colSums(SeuratObjs@raw.data)
+        TotalPerCellExpressed.perc <- round(TotalPerCellExpressed/sum(TotalPerCellExpressed)*100, 5)
         
-        #change the second duplace name to add a .2
-        #perhaps can avg the expr?
-        for(geneN in duplicatedGeneNames){
-          rownames(SeuratObjs@raw.data)[which(rownames(SeuratObjs@raw.data)==geneN)[2]] <- paste(geneN, ".2", sep="")
-          
-        }
-        
-        rownames(SeuratObjs@data) <- rownames(SeuratObjs@raw.data)
-      }
-      
-      
-      print("Filtering Cells...")
-      
-      SeuratObjs <- FilterCells(object = SeuratObjs,
-                                             subset.names = c("nUMI", "nGene", "percent.mito"),
-                                             low.thresholds = c(nUMI.low,   nGene.low,     pMito.low),
-                                             high.thresholds = c(nUMI.high, nGene.high,    pMito.high))
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_postFilt.png", sep=""), width = 15, height = 10, units = "in", res=200)
-      VlnPlot(object = SeuratObjs,
-              features.plot = c("nGene", "nUMI", "percent.mito", "PercentSumTotGeneExprPerCell"),
-              nCol = 3, cols.use = col_vector, x.lab.rot=T, size.x.use = 11)
-      #CleaningLS$Figs$Combo$ViolinPlotTrio_postFilt <- recordPlot()
-      if(save.fig) dev.off()
-      
-      print("Normalizing ...")
-      
-      SeuratObjs <- NormalizeData(object = SeuratObjs, 
-                                               normalization.method = "LogNormalize", 
-                                               scale.factor = 10000)
-      
-      
-      print("Finding Variable Genes ...")
-      SeuratObjs <- FindVariableGenes(object = SeuratObjs,
-                                                   mean.function = ExpMean,
-                                                   dispersion.function = LogVMR,
-                                                   x.low.cutoff = fvg.x.low.cutoff, #X-axis function is the mean expression level
-                                                   x.high.cutoff = fvg.x.high.cutoff, #based on plot viz
-                                                   y.cutoff = fvg.y.cutoff, #Y-axis it is the log(Variance/mean)
-                                                   num.bin = 40) #y.cutoff = 1 sd away from averge within a bin
-      
-      
-      print("Scaling, centering, and regressing out nUMI and p.mito ...")
-      SeuratObjs <- ScaleData(object = SeuratObjs, vars.to.regress = c("nUMI", "percent.mito"))
-
-      
-      if(!is.null(KeepGene.LS)){
-        print("updated Var genes with additional set")
-        length(SeuratObjs@var.genes)      
-        SeuratObjs@var.genes <- unique(c(SeuratObjs@var.genes, as.character(unlist(KeepGene.LS))))
-        length(SeuratObjs@var.genes)
-      }
-      
-
-      print("Running PCA with Var genes ...")
-      SeuratObjs <- RunPCA(object = SeuratObjs,
-                                        pc.genes = SeuratObjs@var.genes,
-                                        do.print = F)
-      
-      SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
-      
-      
-      if(RemoveCellCycle){
-        print("performing cell cycle cleaning ...")
-        
-        cc.genes <- readLines(con = paste(path2CCfiles, "/regev_lab_cell_cycle_genes.txt", sep=""))
-        g2m.genes <- readLines(con =  paste(path2CCfiles, "/G2M.txt", sep=""))
-        
-        # We can segregate this list into markers of G2/M phase and markers of S
-        # phase
-        s.genes <- cc.genes[1:43]
-        g2m.genes <- unique(c(g2m.genes, cc.genes[44:97]))
-        
-        s.genes <- s.genes[which(s.genes %in% rownames(SeuratObjs@raw.data))]
-        g2m.genes <- g2m.genes[which(g2m.genes %in% rownames(SeuratObjs@raw.data))]
+        SeuratObjs <- AddMetaData(object = SeuratObjs,
+                                  metadata = TotalPerCellExpressed,
+                                  col.name = "SumTotGeneExprPerCell")
+        SeuratObjs <- AddMetaData(object = SeuratObjs,
+                                  metadata = TotalPerCellExpressed.perc,
+                                  col.name = "PercentSumTotGeneExprPerCell")
         
         
         
-        #OrigPCA <- SeuratObjs@dr$pca
-        print("running PCA with cell cycle genes")
-        SeuratObjs <- RunPCA(object = SeuratObjs, pc.genes = c(s.genes, g2m.genes), do.print = FALSE)
-        SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
-        
-        SeuratObjs <- CellCycleScoring(object = SeuratObjs, 
-                                       s.genes = s.genes, 
-                                       g2m.genes = g2m.genes, 
-                                       set.ident = TRUE)
-        
-        SeuratObjsCCPCA <- as.data.frame(SeuratObjs@dr$pca@cell.embeddings)
-        colnames(SeuratObjsCCPCA) <- paste(colnames(SeuratObjsCCPCA), "CellCycle", sep="_")
-        #add the PCA DF to meta.data of SeuratObjs
-        
-        if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_CellCycle.png", sep=""), width = 10, height = 10, units = "in", res=200)
-        PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
+        if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_preFilt.png", sep=""), width = 15, height = 10, units = "in", res=200)
+        VlnPlot(object = SeuratObjs,
+                features.plot = c("nGene", "nUMI", "percent.mito", "PercentSumTotGeneExprPerCell"),
+                nCol = 3, cols.use = col_vector, x.lab.rot=T, size.x.use = 11)
         if(save.fig) dev.off()
         
-        print("regressing out S and G2M score ...")
-        SeuratObjs <- ScaleData(object = SeuratObjs, 
-                                vars.to.regress = c("S.Score", "G2M.Score"), 
-                                display.progress = T)
         
+        #Genes that dont map to a specific name
+        noGeneSYM <- rownames(SeuratObjs@raw.data)[grepl(ENSMB.tag, rownames(SeuratObjs@raw.data))]
+        
+        length(noGeneSYM)
+        
+        # write.table(noGeneSYM, 
+        #             "./10X/Rhesus_ENSMMUG.csv",
+        #             sep=", ", , row.names = F, quote = F,
+        #             col.names = F)
+        
+        if(save.fig)  
+          if(RhesusConvDavid){
+            print("Reading in David Data...")
+            
+            David6.8ConvTable <- data.frame(read.csv(RhesusConvDavid.path, sep = "\t", header = T))
+            rownames(David6.8ConvTable) <- David6.8ConvTable$From
+            David6.8ConvTable <- David6.8ConvTable[noGeneSYM, ]
+            length(unique(noGeneSYM)); length((noGeneSYM))
+            rownames(David6.8ConvTable) <- noGeneSYM
+            
+            David6.8ConvTable$Final <- as.character(David6.8ConvTable$To)
+            
+            David6.8ConvTable$Final[which(is.na(David6.8ConvTable$To))] <- rownames(David6.8ConvTable)[which(is.na(David6.8ConvTable$To))]
+            
+            rownames(SeuratObjs@raw.data)[grepl("ENSMM", rownames(SeuratObjs@raw.data))] <- David6.8ConvTable$Final
+            
+            length(rownames(SeuratObjs@raw.data)); length(unique(rownames(SeuratObjs@raw.data)))
+            
+            
+            duplicatedGeneNames <- names(which(table(rownames(SeuratObjs@raw.data))>1))
+            
+            #change the second duplace name to add a .2
+            #perhaps can avg the expr?
+            for(geneN in duplicatedGeneNames){
+              rownames(SeuratObjs@raw.data)[which(rownames(SeuratObjs@raw.data)==geneN)[2]] <- paste(geneN, ".2", sep="")
+              
+            }
+            
+            rownames(SeuratObjs@data) <- rownames(SeuratObjs@raw.data)
+          }
+        
+        
+        print("Filtering Cells...")
+        
+        SeuratObjs <- FilterCells(object = SeuratObjs,
+                                  subset.names = c("nUMI", "nGene", "percent.mito"),
+                                  low.thresholds = c(nUMI.low,   nGene.low,     pMito.low),
+                                  high.thresholds = c(nUMI.high, nGene.high,    pMito.high))
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_postFilt.png", sep=""), width = 15, height = 10, units = "in", res=200)
+        VlnPlot(object = SeuratObjs,
+                features.plot = c("nGene", "nUMI", "percent.mito", "PercentSumTotGeneExprPerCell"),
+                nCol = 3, cols.use = col_vector, x.lab.rot=T, size.x.use = 11)
+        #CleaningLS$Figs$Combo$ViolinPlotTrio_postFilt <- recordPlot()
+        if(save.fig) dev.off()
+        
+        print("Normalizing ...")
+        
+        SeuratObjs <- NormalizeData(object = SeuratObjs, 
+                                    normalization.method = "LogNormalize", 
+                                    scale.factor = 10000)
+        
+        
+        print("Finding Variable Genes ...")
+        SeuratObjs <- FindVariableGenes(object = SeuratObjs,
+                                        mean.function = ExpMean,
+                                        dispersion.function = LogVMR,
+                                        x.low.cutoff = fvg.x.low.cutoff, #X-axis function is the mean expression level
+                                        x.high.cutoff = fvg.x.high.cutoff, #based on plot viz
+                                        y.cutoff = fvg.y.cutoff, #Y-axis it is the log(Variance/mean)
+                                        num.bin = 40) #y.cutoff = 1 sd away from averge within a bin
+        
+        
+        print("Scaling, centering, and regressing out nUMI and p.mito ...")
+        SeuratObjs <- ScaleData(object = SeuratObjs, vars.to.regress = c("nUMI", "percent.mito"))
+        
+        
+        if(!is.null(KeepGene.LS)){
+          print("updated Var genes with additional set")
+          length(SeuratObjs@var.genes)      
+          SeuratObjs@var.genes <- unique(c(SeuratObjs@var.genes, as.character(unlist(KeepGene.LS))))
+          length(SeuratObjs@var.genes)
+        }
         
         
         print("Running PCA with Var genes ...")
@@ -326,101 +281,146 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         
         SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
         
-        SeuratObjs@meta.data <- as.data.frame(cbind(SeuratObjs@meta.data, SeuratObjsCCPCA[rownames(SeuratObjs@meta.data),]))
+        
+        if(RemoveCellCycle){
+          print("performing cell cycle cleaning ...")
+          
+          cc.genes <- readLines(con = paste(path2CCfiles, "/regev_lab_cell_cycle_genes.txt", sep=""))
+          g2m.genes <- readLines(con =  paste(path2CCfiles, "/G2M.txt", sep=""))
+          
+          # We can segregate this list into markers of G2/M phase and markers of S
+          # phase
+          s.genes <- cc.genes[1:43]
+          g2m.genes <- unique(c(g2m.genes, cc.genes[44:97]))
+          
+          s.genes <- s.genes[which(s.genes %in% rownames(SeuratObjs@raw.data))]
+          g2m.genes <- g2m.genes[which(g2m.genes %in% rownames(SeuratObjs@raw.data))]
+          
+          
+          
+          #OrigPCA <- SeuratObjs@dr$pca
+          print("running PCA with cell cycle genes")
+          SeuratObjs <- RunPCA(object = SeuratObjs, pc.genes = c(s.genes, g2m.genes), do.print = FALSE)
+          SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
+          
+          SeuratObjs <- CellCycleScoring(object = SeuratObjs, 
+                                         s.genes = s.genes, 
+                                         g2m.genes = g2m.genes, 
+                                         set.ident = TRUE)
+          
+          SeuratObjsCCPCA <- as.data.frame(SeuratObjs@dr$pca@cell.embeddings)
+          colnames(SeuratObjsCCPCA) <- paste(colnames(SeuratObjsCCPCA), "CellCycle", sep="_")
+          #add the PCA DF to meta.data of SeuratObjs
+          
+          if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_CellCycle.png", sep=""), width = 10, height = 10, units = "in", res=200)
+          PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
+          if(save.fig) dev.off()
+          
+          print("regressing out S and G2M score ...")
+          SeuratObjs <- ScaleData(object = SeuratObjs, 
+                                  vars.to.regress = c("S.Score", "G2M.Score"), 
+                                  display.progress = T)
+          
+          
+          
+          print("Running PCA with Var genes ...")
+          SeuratObjs <- RunPCA(object = SeuratObjs,
+                               pc.genes = SeuratObjs@var.genes,
+                               do.print = F)
+          
+          SeuratObjs <- ProjectPCA(object = SeuratObjs, do.print = FALSE)
+          
+          SeuratObjs@meta.data <- as.data.frame(cbind(SeuratObjs@meta.data, SeuratObjsCCPCA[rownames(SeuratObjs@meta.data),]))
+          
+          
+          
+        }
         
         
+        
+        
+        
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCElbowPlot.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        PCElbowPlot(SeuratObjs)
+        if(save.fig) dev.off()
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCAHeatmap.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        PCHeatmap(object = SeuratObjs,
+                  pc.use = 1:nDimPCA,
+                  cells.use = 200,
+                  do.balanced = TRUE,
+                  label.columns = FALSE,
+                  use.full = FALSE)
+        if(save.fig) dev.off()
+        
+        print("Clustering in PCA Space  ...")
+        SeuratObjs <- FindClusters(object = SeuratObjs, 
+                                   reduction.type = "pca", 
+                                   dims.use = 1:nDimPCA, 
+                                   resolution = 0.6, 
+                                   print.output = 0, 
+                                   save.SNN = TRUE)
+        
+        SeuratObjs <- StashIdent(object = SeuratObjs, 
+                                 save.name = "Cluster_PCA_0.6")
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
+        if(save.fig) dev.off()
+        
+        
+        print("Running TSNE on PCA ...")
+        SeuratObjs <- RunTSNE(object = SeuratObjs, 
+                              reduction.type = "pca", 
+                              dims.use = 1:nDimPCA)
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/TSNEplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        TSNEPlot(object = SeuratObjs, do.label = TRUE)
+        if(save.fig) dev.off()
+        
+        
+        print("Running UMAP on PCA...")
+        SeuratObjs <- RunUMAP(SeuratObjs, 
+                              cells.use = NULL, 
+                              dims.use = 1:nDimPCA, 
+                              reduction.use = "pca", 
+                              max.dim = 2L,
+                              reduction.name = "umap", 
+                              reduction.key = "UMAP", 
+                              n_neighbors = 30L,
+                              min_dist = 0.3, 
+                              metric = "correlation", 
+                              seed.use = 42)
+        
+        
+        if(save.fig) png(filename =  paste(save.fig.path, "/UMAPplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        DimPlot(object = SeuratObjs, reduction.use = 'umap')
+        if(save.fig) dev.off()
+        
+        
+        
+        
+        print("saving ...")
+        saveRDS(SeuratObjs, 
+                paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))
+        
+        if(returnList) TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- SeuratObjs
+        
+      } else {
+        if(returnList) {
+          #to return a full list of data, need to read what is already processed and saved...
+          TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- readRDS(paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))
+          }
         
       }
       
- 
       
-      
-      
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/PCElbowPlot.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      PCElbowPlot(SeuratObjs)
-      if(save.fig) dev.off()
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/PCAHeatmap.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      PCHeatmap(object = SeuratObjs,
-                pc.use = 1:nDimPCA,
-                cells.use = 200,
-                do.balanced = TRUE,
-                label.columns = FALSE,
-                use.full = FALSE)
-      if(save.fig) dev.off()
-      
-      print("Clustering in PCA Space  ...")
-      SeuratObjs <- FindClusters(object = SeuratObjs, 
-                               reduction.type = "pca", 
-                               dims.use = 1:nDimPCA, 
-                               resolution = 0.6, 
-                               print.output = 0, 
-                               save.SNN = TRUE)
-      
-      SeuratObjs <- StashIdent(object = SeuratObjs, 
-                             save.name = "Cluster_PCA_0.6")
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
-      if(save.fig) dev.off()
-      
-      
-      print("Running TSNE on PCA ...")
-      SeuratObjs <- RunTSNE(object = SeuratObjs, 
-                                         reduction.type = "pca", 
-                                         dims.use = 1:nDimPCA)
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/TSNEplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      TSNEPlot(object = SeuratObjs, do.label = TRUE)
-      if(save.fig) dev.off()
-      
-      
-      print("Running UMAP on PCA...")
-      SeuratObjs <- RunUMAP(SeuratObjs, 
-                                         cells.use = NULL, 
-                                         dims.use = 1:nDimPCA, 
-                                         reduction.use = "pca", 
-                                         max.dim = 2L,
-                                         reduction.name = "umap", 
-                                         reduction.key = "UMAP", 
-                                         n_neighbors = 30L,
-                                         min_dist = 0.3, 
-                                         metric = "correlation", 
-                                         seed.use = 42)
-
-
-      if(save.fig) png(filename =  paste(save.fig.path, "/UMAPplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      DimPlot(object = SeuratObjs, reduction.use = 'umap')
-      if(save.fig) dev.off()
-      
-      
-      SeuratObjs <- SetAllIdent(object = SeuratObjs, id = "expN")
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_expN.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
-      if(save.fig) dev.off()
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/TSNEplot_expN.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      TSNEPlot(object = SeuratObjs, do.label = TRUE)
-      if(save.fig) dev.off()
-      
-      if(save.fig) png(filename =  paste(save.fig.path, "/UMAPplot_expN.png", sep=""), width = 10, height = 10, units = "in", res=200)
-      DimPlot(object = SeuratObjs, reduction.use = 'umap')
-      if(save.fig) dev.off()
-      
-      
-      print("saving ...")
-      saveRDS(SeuratObjs, 
-              paste(save.path, "/SeuratObj_", ProjName, "_", xN , ".rds", sep=""))
-      
-      if(returnList) TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- SeuratObjs
       
 
     }
     
     if(returnList) return(TempLS)
-    
-
+  
   }
 }
