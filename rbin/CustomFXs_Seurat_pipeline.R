@@ -22,9 +22,9 @@ CTL_Immune_GeneList <- function(QuickGO.path="./data/QuickGO"){
       sep="\t", header=TRUE, row.names = NULL, fill = TRUE )
   }
   
-  SGS.LS$QuickGOgenes <- data.table::rbindlist(lapply(GeneLists$Extra, function(setX){
+  SGS.LS$QuickGOgenes <- as.character(data.table::rbindlist(lapply(GeneLists$Extra, function(setX){
     subset(setX, TAXON.ID == 9606)[,c("GO.NAME", "SYMBOL")] #10090 = mouse ; 9606 = human
-  }))
+  }))$SYMBOL)
   
   return(SGS.LS)
 }
