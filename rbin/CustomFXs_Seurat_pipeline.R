@@ -126,6 +126,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
   
   
   require(Seurat)
+  
   if(returnList) TempLS <- list()
 
   if(!is.null(SerObj.path)){
@@ -149,12 +150,13 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
     
     for(xN in 1:length(SeurObj_RDS)){
       
-      if(!file.exists(paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))){
+      if(!file.exists(paste(save.path, "/", basename(SeurObj_RDS[xN]), "_proc.rds", sep=""))){
         
         # xN=1
         if(returnList) TempLS$SeuratObjs <- list()
         print("Reading in...")
         print(SeurObj_RDS[xN])
+      
         
         SeuratObjs <- readRDS(SeurObj_RDS[xN])
         
@@ -182,7 +184,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         
         
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_preFilt.png", sep=""), width = 15, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/ViolinPlotTrio_preFilt_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 15, height = 10, units = "in", res=200)
         VlnPlot(object = SeuratObjs,
                 features.plot = c("nGene", "nUMI", "percent.mito", "PercentSumTotGeneExprPerCell"),
                 nCol = 3, cols.use = col_vector, x.lab.rot=T, size.x.use = 11)
@@ -199,7 +201,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         #             sep=", ", , row.names = F, quote = F,
         #             col.names = F)
         
-        if(save.fig)  
+
           if(RhesusConvDavid){
             print("Reading in David Data...")
             
@@ -312,7 +314,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
           colnames(SeuratObjsCCPCA) <- paste(colnames(SeuratObjsCCPCA), "CellCycle", sep="_")
           #add the PCA DF to meta.data of SeuratObjs
           
-          if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_CellCycle.png", sep=""), width = 10, height = 10, units = "in", res=200)
+          if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_CellCycle_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
           PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
           if(save.fig) dev.off()
           
@@ -341,11 +343,11 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         
         
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/PCElbowPlot.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCElbowPlot_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
         PCElbowPlot(SeuratObjs)
         if(save.fig) dev.off()
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/PCAHeatmap.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCAHeatmap_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
         PCHeatmap(object = SeuratObjs,
                   pc.use = 1:nDimPCA,
                   cells.use = 200,
@@ -365,7 +367,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         SeuratObjs <- StashIdent(object = SeuratObjs, 
                                  save.name = "Cluster_PCA_0.6")
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/PCAplot_clust_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
         PCAPlot(object = SeuratObjs, dim.1 = 1, dim.2 = 2)
         if(save.fig) dev.off()
         
@@ -375,7 +377,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
                               reduction.type = "pca", 
                               dims.use = 1:nDimPCA)
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/TSNEplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/TSNEplot_clust_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
         TSNEPlot(object = SeuratObjs, do.label = TRUE)
         if(save.fig) dev.off()
         
@@ -394,7 +396,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
                               seed.use = 42)
         
         
-        if(save.fig) png(filename =  paste(save.fig.path, "/UMAPplot_clust.png", sep=""), width = 10, height = 10, units = "in", res=200)
+        if(save.fig) png(filename =  paste(save.fig.path, "/UMAPplot_clust_", basename(SeurObj_RDS[xN]), ".png", sep=""), width = 10, height = 10, units = "in", res=200)
         DimPlot(object = SeuratObjs, reduction.use = 'umap')
         if(save.fig) dev.off()
         
@@ -403,14 +405,15 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         
         print("saving ...")
         saveRDS(SeuratObjs, 
-                paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))
+                paste(save.path, "/", basename(SeurObj_RDS[xN]), "_proc.rds", sep=""))
         
         if(returnList) TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- SeuratObjs
         
       } else {
         if(returnList) {
           #to return a full list of data, need to read what is already processed and saved...
-          TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- readRDS(paste(save.path, "/", SeurObj_RDS[xN], "_proc.rds", sep=""))
+          TempLS$SeuratObjs[[basename(exp.dirs[xN])]] <- readRDS(
+            paste(save.path, "/", basename(SeurObj_RDS[xN]), "_proc.rds", sep=""))
           }
         
       }
