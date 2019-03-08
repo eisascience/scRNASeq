@@ -88,15 +88,15 @@ MakeSerObjs_10XFolders <- function(counts.path = NULL,
 PreProcess_SerObjFolders <- function(SerObj.path = NULL,
                                    ProjName="10X",
                                    save.path = NULL, save.fig.path = NULL, 
-                                   returnList=F, save.fig = T,
+                                   returnList=F, 
+                                   save.fig = T,
                                    ENSMB.tag="ENSMM", RhesusConvDavid = F,
                                    nUMI.high = 20000, nGene.high = 3000, pMito.high = 0.15, 
                                    nUMI.low = 0.99, nGene.low = 200, pMito.low = -Inf,
                                    RhesusConvDavid.path = "./data/Rhesus/David6.8_ConvertedRhesus_ENSMMUG.txt",
                                    fvg.x.low.cutoff = 0.01, fvg.x.high.cutoff = 4.5, fvg.y.cutoff = 1.5,
                                    KeepGene.LS =NULL, 
-                                   nDimPCA=15,
-                                   returnList=F){
+                                   nDimPCA=15){
   
   require(Seurat)
   if(returnList) TempLS <- list()
