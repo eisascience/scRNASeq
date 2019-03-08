@@ -1,4 +1,15 @@
 
+ColorTheme <- function(){
+  require(RColorBrewer)
+  
+  scaleyellowred <- colorRampPalette(c("dodgerblue", "lightyellow", "red"), space = "rgb")(30)
+  
+  qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+  col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+  col_vector <- col_vector[-4]
+  
+  return(list(col_vector=col_vector, scaleyellowred=scaleyellowred))
+}
 
 range01 <- function(x){(x-min(x))/(max(x)-min(x))}
 

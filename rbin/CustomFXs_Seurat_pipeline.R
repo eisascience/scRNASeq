@@ -1,9 +1,4 @@
 
-
-
-
-
-
 CTL_Immune_GeneList <- function(QuickGO.path="./data/QuickGO"){
   
   SGS.LS <- list()
