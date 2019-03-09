@@ -121,10 +121,10 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
                                    RhesusConvDavid.path = "./data/Rhesus/David6.8_ConvertedRhesus_ENSMMUG.txt",
                                    fvg.x.low.cutoff = 0.01, fvg.x.high.cutoff = 4.5, fvg.y.cutoff = 1.5,
                                    KeepGene.LS =NULL, 
-                                   nDimPCA=15, RemoveCellCycle=F, path2CCfiles="./data/CellCycle"){
+                                   nDimPCA=15, RemoveCellCycle=F, path2CCfiles="./data/CellCycle", cleanGeneNames=T){
   
   
-  
+
   require(Seurat)
   
   if(returnList) TempLS <- list()
@@ -160,14 +160,23 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
         
         SeuratObjs <- readRDS(SeurObj_RDS[xN])
         
+        
+        
         mito.genes <- grep(pattern = "^MT-", x = rownames(x = SeuratObjs@raw.data), value = TRUE)
         length(mito.genes)
         
         percent.mito <- Matrix::colSums(SeuratObjs@raw.data[mito.genes, ]) / Matrix::colSums(SeuratObjs@raw.data)
         
+      
         SeuratObjs <- AddMetaData(object = SeuratObjs,
                                   metadata = percent.mito,
                                   col.name = "percent.mito")
+        
+        if(cleanGeneNames){
+          rownames(SeuratObjs@data)      <- gsub("-", "", gsub("_", "", rownames(SeuratObjs@data)))
+          rownames(SeuratObjs@raw.data)  <- gsub("-", "", gsub("_", "", rownames(SeuratObjs@raw.data)))
+        }
+        
         
         TotalPerGeneExpressed      <- rowSums(SeuratObjs@raw.data)
         TotalPerGeneExpressed.perc <- round(TotalPerGeneExpressed/sum(TotalPerGeneExpressed)*100, 5)
