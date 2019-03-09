@@ -110,7 +110,7 @@ MakeSerObjs_10XFolders <- function(counts.path = NULL,
 
 
 
-PreProcess_SerObjs <- function(SerObj.path = NULL,
+PreProcess_SerObjs <- function(SerObj.path = NULL, SerObjRDSKey="SeuratObj.rds",
                                    ProjName="10X",
                                    save.path = NULL, save.fig.path = NULL, 
                                    returnList=F, 
@@ -142,7 +142,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
     
     
     all_RDS  <- list.files(SerObj.path, full.names = T, pattern = ".rds")
-    SeurObj_RDS <-  all_RDS[grep("SeuratObj.rds", all_RDS)]
+    SeurObj_RDS <-  all_RDS[grep(SerObjRDSKey, all_RDS)]
     
     print("Found files... examples:")
     print(head(SeurObj_RDS))
@@ -263,6 +263,10 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
                                     scale.factor = 10000)
         
         
+        
+        print("Scaling, centering, and regressing out nUMI and p.mito ...")
+        SeuratObjs <- ScaleData(object = SeuratObjs, vars.to.regress = c("nUMI", "percent.mito"))
+        
         print("Finding Variable Genes ...")
         SeuratObjs <- FindVariableGenes(object = SeuratObjs,
                                         mean.function = ExpMean,
@@ -270,11 +274,7 @@ PreProcess_SerObjs <- function(SerObj.path = NULL,
                                         x.low.cutoff = fvg.x.low.cutoff, #X-axis function is the mean expression level
                                         x.high.cutoff = fvg.x.high.cutoff, #based on plot viz
                                         y.cutoff = fvg.y.cutoff, #Y-axis it is the log(Variance/mean)
-                                        num.bin = 40) #y.cutoff = 1 sd away from averge within a bin
-        
-        
-        print("Scaling, centering, and regressing out nUMI and p.mito ...")
-        SeuratObjs <- ScaleData(object = SeuratObjs, vars.to.regress = c("nUMI", "percent.mito"))
+                                        num.bin = 20) #y.cutoff = 1 sd away from averge within a bin
         
         
         if(!is.null(KeepGene.LS)){
