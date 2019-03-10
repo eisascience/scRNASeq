@@ -49,7 +49,7 @@ GetEnsmbleVarImportance <- function(ClassiferSet, AvailableClassifiers="", Scale
 
 
 
-ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", testing.data, log10T=T){
+ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", testing.data, log10T=T, returnTraining=F){
 
   if(file.exists(Classifier.rds.path)){
     MultiClassifierResults <- readRDS(Classifier.rds.path)
@@ -66,22 +66,23 @@ ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", te
     
     
     if(class(testing.data)[1]=="seurat") {
-      testing.data <- testing.data@data
+      print("Converting Seurat Sparse Matrix to one with 0s .... ")
+      
+      testing.data <- Matrix::as.matrix(t(testing.data@data))
     } else {
-      if(class(testing.data)[1]!="dgCMatrix") {
+      if(!(class(testing.data)[1] %in% c("dgCMatrix", "matrix", "Matrix")) ) {
         print("DGE mat not Seurat or dgCMatrix")
         print("Make sure columns are cells and rows are genes and convert to expected format for speed")
+        testing.data <- Matrix::as.matrix((testing.data))
         
       }
     }
     
-    print("Converting Sparse Matrix 2 one with 0s .... ")
+    
     if(log10T) {
-      print("Also log-transforming")
-      testing.data <- log10(Matrix::as.matrix(t(testing.data))+1)
-    } else {
-      testing.data <- Matrix::as.matrix(t(testing.data))
-    }
+      print("log-transforming")
+      testing.data <- log10(testing.data+1)
+    } 
     
     
     print("Starting Classification")
@@ -109,13 +110,15 @@ ClassifyCellsCustom <- function(Classifier.rds.path = "", ClassifierNames="", te
 
     
     rownames(testing.data.yhat) <- rownames(testing.data)
+    
+    
     return(list(yhat.DF = testing.data.yhat, 
                 classification.levels = levels(testing.data.yhat[,1]),
                 Available.Classifiers = Available.Classifiers, 
                 log10T = log10T, 
                 DGEcolNames = colnames(testing.data),
                 DGErowNames = rownames(testing.data),
-                MultiClassifierResults = MultiClassifierResults))
+                MultiClassifierResults = ifelse(returnTraining, MultiClassifierResults, "NULL")))
     
   } else {
     print("Check classifier path ....")
