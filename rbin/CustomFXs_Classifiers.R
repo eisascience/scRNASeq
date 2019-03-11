@@ -3,7 +3,7 @@
 
 Garnett_Classification_Seurat <- function(SerObj, 
                                           marker_file_path = "./data/Garnett/pbmc_classification.txt", 
-                                          reutrnMonObj=F){ 
+                                          reutrnMonObj=F, returnTrainedClassifier=T){ 
   library(Seurat)
   library(ggplot2)
   library(cowplot)
@@ -46,9 +46,8 @@ Garnett_Classification_Seurat <- function(SerObj,
   tempStorageLS$return <- list()
   tempStorageLS$return$Meta.Data <- pData(tempStorageLS$MonComboObj)
   if(reutrnMonObj) tempStorageLS$return$MonObj <- tempStorageLS$MonComboObj else tempStorageLS$return$MonObj <- "notSaved"
-  
+  if(returnTrainedClassifier) tempStorageLS$return$Garnett_classifier <- tempStorageLS$Garnett_classifier else tempStorageLS$return$Garnett_classifier <- "notSaved"
   return(tempStorageLS$return)
-  
 
 }
 

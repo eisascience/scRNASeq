@@ -39,10 +39,22 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
         
         
         if(GarnettClassify) {
-          
+          print("Starting Garnett Classifier Pipe...")
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep=""))){
+            
           ClassifiersLS$Garnett[[tempName]] <- Garnett_Classification_Seurat(tempSER, 
                                         marker_file_path = "./data/Garnett/pbmc_classification.txt", 
                                         reutrnMonObj=F)
+          print("Saving Garnett Results")
+          saveRDS(ClassifiersLS$Garnett[[tempName]], 
+                  paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep=""))
+          
+          
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$Garnett[[tempName]] <- list(GarC=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep="")))
+          }
         }
           
           
