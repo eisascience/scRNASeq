@@ -64,15 +64,14 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
             
             print("Starting Seurat's AddModule Scoring for GeneSets")
             xN=0
-            ModuleScoreGeneLists <- list()
             tempLSScores <- list()
             
-            for(GeneList in ModuleScoreGeneLists){
+            for(GeneList in names(ModuleScoreGeneLists)){
               xN = xN + 1
               print("Gene Set"); print(xN)
 
               tempLSScores[[xN]] <- AddModuleScoreV2(object=tempSER, 
-                               genes.list = GeneList, 
+                               genes.list = ModuleScoreGeneLists[[GeneList]], 
                                genes.pool = NULL,
                                n.bin = 25, 
                           seed.use = 1, 
@@ -84,7 +83,7 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
             }
               
             #Seurate gene score (SGS)
-            ClassifiersLS$ModuleScoreGeneLists[[tempName]] <- list(SGS=tempLSScores)
+            ClassifiersLS$SeuratGeneScore[[tempName]] <- list(SGS=tempLSScores)
             }
         
         
