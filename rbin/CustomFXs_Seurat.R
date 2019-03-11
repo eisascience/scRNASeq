@@ -33,7 +33,7 @@ AddModuleScoreSindv <- function(Ser_object=NULL, geneSet=NULL){
 AddModuleScoreV2 <- 
   function (object, genes.list = NULL, genes.pool = NULL, n.bin = 25, 
             seed.use = 1, ctrl.size = 100, use.k = FALSE, enrich.name = "Cluster", 
-            random.seed = 1) 
+            random.seed = 1, returnSerObj=T) 
   {
     # object = CleaningLS$SeurComboObj
     # random.seed = 1
@@ -115,10 +115,17 @@ AddModuleScoreV2 <-
     rownames(x = genes.scores.use) <- paste0(enrich.name, 1:cluster.length)
     genes.scores.use <- as.data.frame(x = t(x = genes.scores.use))
     rownames(x = genes.scores.use) <- colnames(x = object@data)
-    object <- AddMetaData(object = object, metadata = genes.scores.use, 
-                          col.name = colnames(x = genes.scores.use))
-    gc(verbose = FALSE)
-    return(object)
+    
+    if(returnSerObj){
+      object <- AddMetaData(object = object, metadata = genes.scores.use, 
+                            col.name = colnames(x = genes.scores.use))
+      gc(verbose = FALSE)
+      return(object)
+    } else {
+      return(genes.scores.use)
+      
+    }
+    
   }
 
 

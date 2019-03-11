@@ -3,7 +3,8 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
                         classification.path = NULL, file.select = NULL, 
                         TrainedClassifiers.path = "../PBMC3k/data",
                         save.fig.path = NULL, col_vector=NULL, returnLS = F, GarnettClassify=F, 
-                        Garnett.path = "./data/Garnett/pbmc_classification.txt", MCEClassify=T ){
+                        Garnett.path = "./data/Garnett/pbmc_classification.txt", MCEClassify=T, 
+                        ModuleScoreGeneListClassify=F, ModuleScoreGeneLists=NULL){
   
 
   if(is.null(ProcSERobj.path)){
@@ -16,6 +17,7 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
     ClassifiersLS$MCEyhat$B <- list()
     ClassifiersLS$MCEyhat$Lymph <- list()
     if(GarnettClassify) ClassifiersLS$Garnett <- list()
+    if(ModuleScoreGeneListClassify) ClassifiersLS$ModuleScoreGeneLists <- list()
     
     SERObjects_processed.paths <- list.files(ProcSERobj.path, full.names = T, pattern = PatternOfProcSERobj)
     
@@ -58,7 +60,44 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
         }
           
           
-          
+          if(ModuleScoreGeneListClassify){
+            
+            print("Starting Seurat's AddModule Scoring for GeneSets")
+            xN=0
+            ClassifiersLS$ModuleScoreGeneLists[[tempName]] <- list()
+            
+            for(GeneList in ModuleScoreGeneLists){
+              xN = xN + 1
+
+              ClassifiersLS$ModuleScoreGeneLists[[tempName]][[xN]] <- AddModuleScoreV2(object=tempSER, 
+                               genes.list = GeneList, 
+                               genes.pool = NULL,
+                               n.bin = 25, 
+                          seed.use = 1, 
+                          ctrl.size = 100, 
+                          use.k = FALSE, 
+                          enrich.name = "Cluster", 
+                          random.seed = 1, returnSerObj=F)
+              
+            }
+            
+              
+              ClassifiersLS$Garnett[[tempName]] <- Garnett_Classification_Seurat(tempSER, 
+                                                                                 marker_file_path = "./data/Garnett/pbmc_classification.txt", 
+                                                                                 reutrnMonObj=F)
+              print("Saving Garnett Results")
+              saveRDS(ClassifiersLS$Garnett[[tempName]], 
+                      paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep=""))
+              
+              
+            } else {
+              print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep=""))
+              print("Already done ... loading for LS")
+              ClassifiersLS$Garnett[[tempName]] <- list(GarC=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Garnettyhat.rds",sep="")))
+            }
+          }
+            
+          }
         
         
         
