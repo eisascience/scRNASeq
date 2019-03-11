@@ -3,7 +3,7 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
                         classification.path = NULL, file.select = NULL, 
                         TrainedClassifiers.path = "../PBMC3k/data",
                         save.fig.path = NULL, col_vector=NULL, returnLS = F, GarnettClassify=F, 
-                        Garnett.path = "./data/Garnett/pbmc_classification.txt" ){
+                        Garnett.path = "./data/Garnett/pbmc_classification.txt", MCEClassify=T ){
   
 
   if(is.null(ProcSERobj.path)){
@@ -52,259 +52,263 @@ predict_MCE <- function(ProcSERobj.path = NULL, PatternOfProcSERobj="_proc.rds",
         
         #CD8 T cells
         
-        
-        
-        if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))){
+        if(MCEClassify){
           
-          #one can directly give the Seurat object to the ClassifyCellsCustom()
-          #since looping, its faster to compute the non-sparse log once
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))){
+            
+            #one can directly give the Seurat object to the ClassifyCellsCustom()
+            #since looping, its faster to compute the non-sparse log once
+            
+            X.SerObj.temp <- log10(Matrix::as.matrix(t(tempSER@data))+1)
+            
+            dim(X.SerObj.temp)
+            # head(rownames(X.SerObj.temp))
+            
+            
+            ClassifiersLS$MCEyhat$CD8T[[tempName]]  <- list(MCE=ClassifyCellsCustom(
+              Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_CD8T.rds", sep=""), 
+              testing.data = X.SerObj.temp, log10T=F))
+            
+            ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$log10T = T
+            
+            #either save results as tsv or csv 
+            #ClassifiersLS$MCEyhat$CD8T[[tempName]]$yhat.DF
+            #or entire object
+            saveRDS(ClassifiersLS$MCEyhat$CD8T[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))
+            
+            
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$MCEyhat$CD8T[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep="")))
+          }
           
-          X.SerObj.temp <- log10(Matrix::as.matrix(t(tempSER@data))+1)
-          
-          dim(X.SerObj.temp)
-          # head(rownames(X.SerObj.temp))
           
           
-          ClassifiersLS$MCEyhat$CD8T[[tempName]]  <- list(MCE=ClassifyCellsCustom(
-            Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_CD8T.rds", sep=""), 
-            testing.data = X.SerObj.temp, log10T=F))
           
-          ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$log10T = T
+          #CD4T cells
+          tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
           
-          #either save results as tsv or csv 
-          #ClassifiersLS$MCEyhat$CD8T[[tempName]]$yhat.DF
-          #or entire object
-          saveRDS(ClassifiersLS$MCEyhat$CD8T[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))){
+            
+            if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
+            
+            ClassifiersLS$MCEyhat$CD4T[[tempName]]  <- list(MCE=ClassifyCellsCustom(
+              Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_CD4T.rds", sep=""), 
+              testing.data = X.SerObj.temp, log10T=F))
+            ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$log10T = T
+            
+            #either save results as tsv or csv 
+            #ClassifiersLS$MCEyhat$CD4T[[tempName]]$yhat.DF
+            #or entire object
+            saveRDS(ClassifiersLS$MCEyhat$CD4T[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))
+            
+            
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$MCEyhat$CD4T[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep="")))
+          }
           
           
-        } else {
-          print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep=""))
-          print("Already done ... loading for LS")
-          ClassifiersLS$MCEyhat$CD8T[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD8T_MCEyhat.rds",sep="")))
+          #NK cells
+          tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
+          
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))){
+            
+            if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
+            
+            ClassifiersLS$MCEyhat$NK[[tempName]]  <- list(MCE=ClassifyCellsCustom(
+              Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_NK.rds", sep=""), 
+              testing.data = X.SerObj.temp, log10T=F))
+            ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$log10T = T
+            
+            #either save results as tsv or csv 
+            #ClassifiersLS$MCEyhat$NK[[tempName]]$yhat.DF
+            #or entire object
+            saveRDS(ClassifiersLS$MCEyhat$NK[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))
+            
+            
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$MCEyhat$NK[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep="")))
+          }
+          
+          
+          
+          #B cells
+          tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
+          
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))){
+            
+            if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
+            
+            ClassifiersLS$MCEyhat$B[[tempName]]  <- list(MCE=ClassifyCellsCustom(
+              Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_B.rds", sep=""), 
+              testing.data = X.SerObj.temp, log10T=F))
+            ClassifiersLS$MCEyhat$B[[tempName]]$MCE$log10T = T
+            
+            #either save results as tsv or csv 
+            #ClassifiersLS$MCEyhat$B[[tempName]]$yhat.DF
+            #or entire object
+            saveRDS(ClassifiersLS$MCEyhat$B[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))
+            
+            
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$MCEyhat$B[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep="")))
+          }
+          
+          
+          
+          #Lymph cells
+          tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
+          
+          if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))){
+            
+            if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
+            
+            ClassifiersLS$MCEyhat$Lymph[[tempName]]  <- list(MCE=ClassifyCellsCustom(
+              Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_Lymph.rds", sep=""), 
+              testing.data = X.SerObj.temp, log10T=F))
+            
+            ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$log10T = T
+            
+            #either save results as tsv or csv 
+            #ClassifiersLS$MCEyhat$Lymph[[tempName]]$yhat.DF
+            #or entire object
+            saveRDS(ClassifiersLS$MCEyhat$Lymph[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))
+          } else {
+            print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))
+            print("Already done ... loading for LS")
+            ClassifiersLS$MCEyhat$Lymph[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep="")))
+          }
+          
+          print("All classifiers are done with this file ... ")
+          print("Saving figures...")
+          
+          png(filename = paste(save.fig.path, "/UMAP_PentaClass_", basename(gsub(".rds_proc.rds", "", SERObj.path)), ".png", sep=""), width = 13, height = 9, units = "in", res=200)
+          
+          grid.arrange(grobs=list(ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. CD8T"),
+                                  ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. CD4T"),
+                                  ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. NK"),
+                                  ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$B[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. B"),
+                                  ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. Lymph")),
+                       nrow=2, heights = c(1,1))
+          dev.off()
+          
+          
+          yhat.Combo <- as.data.frame(cbind(1-ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$yhat.DF$NotProb,
+                                            1-ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$yhat.DF$NotProb,
+                                            1-ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$yhat.DF$NotProb,
+                                            1-ClassifiersLS$MCEyhat$B[[tempName]]$MCE$yhat.DF$NotProb,
+                                            1-ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$yhat.DF$NotProb))
+          
+          colnames(yhat.Combo) <- c("CD8T", "CD4T", "NK", "B", "Lymph")
+          rownames(yhat.Combo) <- colnames(tempSER@data)
+          
+          Classificatio.meta.data <- list()
+          
+          Classificatio.meta.data$CD8T_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] > 0.5 & 
+                     xR["CD8T"] > 0.5 & 
+                     xR["CD4T"] < 0.5 & 
+                     xR["NK"] < 0.5 & 
+                     xR["B"] < 0.5, 1, 0)
+          })
+          
+          Classificatio.meta.data$CD4T_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] > 0.5 & 
+                     xR["CD8T"] < 0.5 & 
+                     xR["CD4T"] > 0.5 & 
+                     xR["NK"] < 0.5 & 
+                     xR["B"] < 0.5, 1, 0)
+          })
+          
+          
+          Classificatio.meta.data$B_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] > 0.5 & 
+                     xR["CD8T"] < 0.5 & 
+                     xR["CD4T"] < 0.5 & 
+                     xR["NK"] < 0.5 & 
+                     xR["B"] > 0.5, 1, 0)
+          })
+          
+          
+          Classificatio.meta.data$NK_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] > 0.5 & 
+                     xR["CD8T"] < 0.5 & 
+                     xR["CD4T"] < 0.5 & 
+                     xR["NK"] > 0.5 & 
+                     xR["B"] < 0.5, 1, 0)
+          })
+          
+          
+          Classificatio.meta.data$LymphNotTBNK_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] > 0.5 & 
+                     xR["CD8T"] < 0.5 & 
+                     xR["CD4T"] < 0.5 & 
+                     xR["NK"] < 0.5 & 
+                     xR["B"] < 0.5, 1, 0)
+          })
+          
+          Classificatio.meta.data$NotLymphTBNK_MCE <- apply(yhat.Combo, 1, function(xR){
+            ifelse(xR["Lymph"] < 0.5 & 
+                     xR["CD8T"] < 0.5 & 
+                     xR["CD4T"] < 0.5 & 
+                     xR["NK"] < 0.5 & 
+                     xR["B"] < 0.5, 1, 0)
+          })
+          
+          Classificatio.meta.data <- as.data.frame(Classificatio.meta.data)
+          
+          
+          
+          png(filename = paste(save.fig.path, "/UMAP_PentaClass_", basename(gsub(".rds_proc.rds", "", SERObj.path)), ".png", sep=""), width = 13, height = 9, units = "in", res=200)
+          
+          grid.arrange(grobs=list(ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, NotLymphTBNK_MCE == 1)),
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nNon-Lymphocytes, Non-B-T-NK\nEnsmble Classifier"),
+                                  ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, LymphNotTBNK_MCE == 1)), 
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nLymphocytes, Non-B-T-NK\nEnsmble Classifier"),
+                                  ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, NK_MCE == 1)), 
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nNK Lymphocytes, Non-B-T\nEnsmble Classifier"),
+                                  ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, B_MCE == 1)), 
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nB Lymphocytes, Non-NK-T\nEnsmble Classifier"),
+                                  ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, CD4T_MCE == 1)), 
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nCD4T Lymphocytes, Non-NK-B-CD8T\nEnsmble Classifier"),
+                                  ggUMAP(tempSER,
+                                         colFac = NULL,
+                                         cells.use = rownames(subset(Classificatio.meta.data, CD8T_MCE == 1)), 
+                                         ptSize = .7, ptAlpha = .8,
+                                         col_vector = col_vector, add2title="\nCD8T Lymphocytes, Non-NK-B-CD4T\nEnsmble Classifier")),
+                       nrow=2, heights = c(1,1))
+          dev.off()
+          
+          
+          
+          
+          ClassifiersLS$classificationLS[[tempName]] <- list(Classificatio.meta.data = Classificatio.meta.data, yhat.Combo=yhat.Combo)
+          
+          
         }
         
-        
-        
-        
-        #CD4T cells
-        tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
-        
-        if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))){
-          
-          if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
-          
-          ClassifiersLS$MCEyhat$CD4T[[tempName]]  <- list(MCE=ClassifyCellsCustom(
-            Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_CD4T.rds", sep=""), 
-            testing.data = X.SerObj.temp, log10T=F))
-          ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$log10T = T
-          
-          #either save results as tsv or csv 
-          #ClassifiersLS$MCEyhat$CD4T[[tempName]]$yhat.DF
-          #or entire object
-          saveRDS(ClassifiersLS$MCEyhat$CD4T[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))
-          
-          
-        } else {
-          print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep=""))
-          print("Already done ... loading for LS")
-          ClassifiersLS$MCEyhat$CD4T[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_CD4T_MCEyhat.rds",sep="")))
-        }
-        
-        
-        #NK cells
-        tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
-        
-        if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))){
-          
-          if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
-          
-          ClassifiersLS$MCEyhat$NK[[tempName]]  <- list(MCE=ClassifyCellsCustom(
-            Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_NK.rds", sep=""), 
-            testing.data = X.SerObj.temp, log10T=F))
-          ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$log10T = T
-          
-          #either save results as tsv or csv 
-          #ClassifiersLS$MCEyhat$NK[[tempName]]$yhat.DF
-          #or entire object
-          saveRDS(ClassifiersLS$MCEyhat$NK[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))
-          
-          
-        } else {
-          print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep=""))
-          print("Already done ... loading for LS")
-          ClassifiersLS$MCEyhat$NK[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_NK_MCEyhat.rds",sep="")))
-        }
-        
-        
-        
-        #B cells
-        tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
-        
-        if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))){
-          
-          if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
-          
-          ClassifiersLS$MCEyhat$B[[tempName]]  <- list(MCE=ClassifyCellsCustom(
-            Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_B.rds", sep=""), 
-            testing.data = X.SerObj.temp, log10T=F))
-          ClassifiersLS$MCEyhat$B[[tempName]]$MCE$log10T = T
-          
-          #either save results as tsv or csv 
-          #ClassifiersLS$MCEyhat$B[[tempName]]$yhat.DF
-          #or entire object
-          saveRDS(ClassifiersLS$MCEyhat$B[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))
-          
-          
-        } else {
-          print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep=""))
-          print("Already done ... loading for LS")
-          ClassifiersLS$MCEyhat$B[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_B_MCEyhat.rds",sep="")))
-        }
-        
-        
-        
-        #Lymph cells
-        tempName <- basename(gsub("_", "", gsub("-", "_", gsub("\\.", "", gsub("_SeuratObj.rds_proc.rds", "", SERObj.path)))))
-        
-        if(!file.exists(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))){
-          
-          if(!exists("X.SerObj.temp")) X.SerObj.temp <- readRDS(SERObj.path)
-          
-          ClassifiersLS$MCEyhat$Lymph[[tempName]]  <- list(MCE=ClassifyCellsCustom(
-            Classifier.rds.path = paste(TrainedClassifiers.path, "/MCR_LS_Lymph.rds", sep=""), 
-            testing.data = X.SerObj.temp, log10T=F))
-          
-          ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$log10T = T
-          
-          #either save results as tsv or csv 
-          #ClassifiersLS$MCEyhat$Lymph[[tempName]]$yhat.DF
-          #or entire object
-          saveRDS(ClassifiersLS$MCEyhat$Lymph[[tempName]], paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))
-        } else {
-          print(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep=""))
-          print("Already done ... loading for LS")
-          ClassifiersLS$MCEyhat$Lymph[[tempName]] <- list(MCE=readRDS(paste(classification.path, "/", basename(gsub(".rds_proc.rds", "", SERObj.path)), "_Lymph_MCEyhat.rds",sep="")))
-        }
-        
-        print("All classifiers are done with this file ... ")
-        print("Saving figures...")
-        
-        png(filename = paste(save.fig.path, "/UMAP_PentaClass_", basename(gsub(".rds_proc.rds", "", SERObj.path)), ".png", sep=""), width = 13, height = 9, units = "in", res=200)
-        
-        grid.arrange(grobs=list(ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. CD8T"),
-                                ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. CD4T"),
-                                ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. NK"),
-                                ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$B[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. B"),
-                                ggUMAP(tempSER, colFac = cut(round((1-ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$yhat.DF$NotProb), 2),breaks=c(-Inf,.5, 0.8, 1)), col_vector = col_vector, ptSize = .9, add2title = "\nPredicted Prob. Lymph")),
-                     nrow=2, heights = c(1,1))
-        dev.off()
-        
-        
-        yhat.Combo <- as.data.frame(cbind(1-ClassifiersLS$MCEyhat$CD8T[[tempName]]$MCE$yhat.DF$NotProb,
-                                          1-ClassifiersLS$MCEyhat$CD4T[[tempName]]$MCE$yhat.DF$NotProb,
-                                          1-ClassifiersLS$MCEyhat$NK[[tempName]]$MCE$yhat.DF$NotProb,
-                                          1-ClassifiersLS$MCEyhat$B[[tempName]]$MCE$yhat.DF$NotProb,
-                                          1-ClassifiersLS$MCEyhat$Lymph[[tempName]]$MCE$yhat.DF$NotProb))
-        
-        colnames(yhat.Combo) <- c("CD8T", "CD4T", "NK", "B", "Lymph")
-        rownames(yhat.Combo) <- colnames(tempSER@data)
-        
-        Classificatio.meta.data <- list()
-        
-        Classificatio.meta.data$CD8T_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] > 0.5 & 
-                   xR["CD8T"] > 0.5 & 
-                   xR["CD4T"] < 0.5 & 
-                   xR["NK"] < 0.5 & 
-                   xR["B"] < 0.5, 1, 0)
-        })
-        
-        Classificatio.meta.data$CD4T_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] > 0.5 & 
-                   xR["CD8T"] < 0.5 & 
-                   xR["CD4T"] > 0.5 & 
-                   xR["NK"] < 0.5 & 
-                   xR["B"] < 0.5, 1, 0)
-        })
-        
-        
-        Classificatio.meta.data$B_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] > 0.5 & 
-                   xR["CD8T"] < 0.5 & 
-                   xR["CD4T"] < 0.5 & 
-                   xR["NK"] < 0.5 & 
-                   xR["B"] > 0.5, 1, 0)
-        })
-        
-        
-        Classificatio.meta.data$NK_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] > 0.5 & 
-                   xR["CD8T"] < 0.5 & 
-                   xR["CD4T"] < 0.5 & 
-                   xR["NK"] > 0.5 & 
-                   xR["B"] < 0.5, 1, 0)
-        })
-        
-        
-        Classificatio.meta.data$LymphNotTBNK_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] > 0.5 & 
-                   xR["CD8T"] < 0.5 & 
-                   xR["CD4T"] < 0.5 & 
-                   xR["NK"] < 0.5 & 
-                   xR["B"] < 0.5, 1, 0)
-        })
-        
-        Classificatio.meta.data$NotLymphTBNK_MCE <- apply(yhat.Combo, 1, function(xR){
-          ifelse(xR["Lymph"] < 0.5 & 
-                   xR["CD8T"] < 0.5 & 
-                   xR["CD4T"] < 0.5 & 
-                   xR["NK"] < 0.5 & 
-                   xR["B"] < 0.5, 1, 0)
-        })
-        
-        Classificatio.meta.data <- as.data.frame(Classificatio.meta.data)
-       
-        
-        
-        png(filename = paste(save.fig.path, "/UMAP_PentaClass_", basename(gsub(".rds_proc.rds", "", SERObj.path)), ".png", sep=""), width = 13, height = 9, units = "in", res=200)
-        
-        grid.arrange(grobs=list(ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, NotLymphTBNK_MCE == 1)),
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nNon-Lymphocytes, Non-B-T-NK\nEnsmble Classifier"),
-                                ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, LymphNotTBNK_MCE == 1)), 
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nLymphocytes, Non-B-T-NK\nEnsmble Classifier"),
-                                ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, NK_MCE == 1)), 
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nNK Lymphocytes, Non-B-T\nEnsmble Classifier"),
-                                ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, B_MCE == 1)), 
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nB Lymphocytes, Non-NK-T\nEnsmble Classifier"),
-                                ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, CD4T_MCE == 1)), 
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nCD4T Lymphocytes, Non-NK-B-CD8T\nEnsmble Classifier"),
-                                ggUMAP(tempSER,
-                                       colFac = NULL,
-                                       cells.use = rownames(subset(Classificatio.meta.data, CD8T_MCE == 1)), 
-                                       ptSize = .7, ptAlpha = .8,
-                                       col_vector = col_vector, add2title="\nCD8T Lymphocytes, Non-NK-B-CD4T\nEnsmble Classifier")),
-                     nrow=2, heights = c(1,1))
-        dev.off()
-        
-        
-        
-        
-        ClassifiersLS$classificationLS[[tempName]] <- list(Classificatio.meta.data = Classificatio.meta.data, yhat.Combo=yhat.Combo)
         
         
       }
