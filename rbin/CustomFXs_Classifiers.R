@@ -2,7 +2,7 @@
 #Classifiers from the Caret package are kept together in the associated .R file.
 
 Garnett_Classification_Seurat <- function(SerObj, 
-                                          marker_file_path = "./data/Garnett/pbmc_classification3.txt", 
+                                          marker_file_path = "./data/Garnett/pbmc_classification.txt", 
                                           reutrnMonObj=F){ 
   library(Seurat)
   library(ggplot2)
